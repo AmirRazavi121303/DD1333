@@ -31,10 +31,9 @@ def parsing(folder_path):
                 flp = pyflp.parse(filepath)
                 
                 add_hashes = set()
-                names = set()
                 for channel in flp.channels:
                     if hasattr(channel, "sample_path") and channel.sample_path:
-                        md5hash = signature(filename, channel)
+                        md5hash = signature(channel)
                         if md5hash:
                             add_hashes.add(md5hash)
                 
@@ -48,7 +47,7 @@ def parsing(folder_path):
     
     return projects
 
-def signature(filename, channel):
+def signature(channel):
     full_sample_path = str(channel.sample_path)
     try: #om den sökvägen finns på datorn
         with open(full_sample_path, "rb") as f: #läser in samplet som binär fil
@@ -59,8 +58,8 @@ def signature(filename, channel):
         
     except Exception: 
         #Fallback om det ej skulle gå att läsa in samplet så tittar den bara på namnet på den istället
-        if filename:
-            return filename #vad händer i parsing om det blir exception
+        if full_sample_path:
+            return full_sample_path #vad händer i parsing om det blir exception
     
     return None #om sample path skulle vara tom så kommer detta att behövas
 
