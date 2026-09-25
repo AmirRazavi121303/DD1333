@@ -13,7 +13,7 @@ class Kort():
         self.visas = not self.visas
     
     def __str__(self):
-        if not self.visas:
+        if self.visas:
             return f"{self.färg}, {self.symbol}, {self.fyllnadsgrad}, {self.n_symboler}"
         else:
             return "Baksida"
@@ -40,68 +40,114 @@ class Kortlek():
 
     def dra_kort(self): #plockar det högsta kortet i leken
         draget_kort = self.kort.pop()
+        draget_kort.vänd()
         return draget_kort
 
     def antal_kvar(self):
         return len(self.kort)
 
 class Spelbord():
-    #hanterar de 6 kort från "dealern" och 3 till spelaren
     def __init__(self, kortlek):
         self.bordets_kort = []
-        self.placera_kort(kortlek)
+        self.fyll_på_bordet(kortlek)
     
-    def placera_kort(self, kortlek):
-        while len(self.bordets_kort) < 6:
-            self.bordets_kort.append(kortlek.dra_kort())
+    def fyll_på_bordet(self, kortlek):
+        while len(self.bordets_kort) < 6 and kortlek.antal_kvar() > 0:
+            kort = kortlek.dra_kort()
+            self.bordets_kort.append(kort)
     
     def välj_kort(self, kortlek):
+        a = 6
         self.valda_kort = []
-        self.valda_index = [1, 2, 3, 4, 5, 6]
+        self.valda_index = [i for i in range(1,a+1)]
         
         while len(self.valda_index) > 3:
             try:
-                user_input = int(input(f"Välj ett kort, ange numret ovanför kortet. ({len(self.valda_kort) + 1} / 3)"))
+                user_input = int(input(f"Välj ett kort (1-{a}) ({len(self.valda_kort) + 1} / {a//2})"))
                 if user_input in self.valda_index:
                     self.valda_index.remove(user_input)
                     self.valda_kort.append(self.bordets_kort[user_input-1])
                 
+                elif user_input > a:
+                    print("Det finns inte så många kort i leken")
                 else:
                     print("Det kortet har du redan valt, försök igen")
             except Exception:
                 print("Ogiltigt svar, försök igen")
-        
-        for i in range(1,7):
-            if i not in self.valda_index:
-                self.bordets_kort[i-1] = kortlek.dra_kort()
         return self.valda_kort
+    
+    def ersätt_valda_kort(self, kortlek: Kortlek):
+        for i in range(1,7): #tänk på detta om a skulle förändras
+            if i not in self.valda_index and kortlek.antal_kvar() > 0:
+                nytt_kort = kortlek.dra_kort()
+                if not nytt_kort.visas:
+                    nytt_kort.vänd()
+                self.bordets_kort[i-1] = nytt_kort
 
     def räkna_poäng(self):
         poäng = 0
-        card1 = set(self.valda_kort[0])
-        card2 = set(self.valda_kort[1])
-        card3 = set(self.valda_kort[2])
+        k1, k2, k3 = self.valda_kort[0], self.valda_kort[1], self.valda_kort[2]
+        färger_set = {k1.färg, k2.färg, k3.färg}
+        symboler_set = {k1.symbol, k2.symbol, k3.symbol}
+        fyllnadsgrader_set = {k1.fyllnadsgrad, k2.fyllnadsgrad, k3.fyllnadsgrad}
+        antal_symboler_set = {k1.n_symboler, k2.n_symboler, k3.n_symboler}
         
-        if (card1.intersection(card2)).intersection(card3):
-            poäng = poäng + 2
-        elif not (card1.intersection(card2) and card1.union(card2).intersection(card3)):
-            poäng = poäng + 3
+        egenskaper = [färger_set, symboler_set, fyllnadsgrader_set, antal_symboler_set]
+        
+        giltig_trippel = False
+        inget_lika = True
+        
+        for e in egenskaper:
+            if len(e) == 1:
+                giltig_trippel = True
+                inget_lika = False
+                break
+            elif len(e) == 2:
+                inget_lika = False
+        
+        if inget_lika and not giltig_trippel:
+            poäng = poäng +3
+        elif giltig_trippel:
+            poäng = poäng +2
         else:
             poäng = poäng -1
+        
         return poäng
     
-    def __str__(self):
-        if self.visas:
-            return f"{self.färg}, {self.symbol}, {self.fyllnadsgrad}, {self.n_symboler}"
+    def fortsätt(self):
+        if input("Vill du fortsätta spelet (y/n)?").lower() == "y":
+            return True
         else:
-            return "Baksida"
+            return False
 
+def main():
+        kortlek = Kortlek()
+        kortlek.blanda()
+        
+        bord = Spelbord(kortlek)
+        bord.fyll_på_bordet(kortlek)
+        
+        total_poäng = 0
+        
+        while kortlek.antal_kvar() > 0:
+            print(f"Antalet kort kvar i leken: {kortlek.antal_kvar()}")
+            
+            valda_kort = bord.välj_kort(kortlek)
+            
+            print("Dina kort är:")
+            for kort in valda_kort:
+                print(kort)
+            
+            omgång_poäng = bord.räkna_poäng()
+            total_poäng += omgång_poäng
+            
+            print(f"Utdelad poäng denna runda: {omgång_poäng}")
+            print(f"Total poäng: {total_poäng}")
+            
+            bord.ersätt_valda_kort(kortlek)
+            if not bord.fortsätt():
+                break
+        print(f"Spelet är slut, du fick {total_poäng} poäng!")
 
-
-min_kortlek = Kortlek()
-min_kortlek.blanda()
-mitt_bord = Spelbord(min_kortlek)
-mina_kort = mitt_bord.välj_kort(min_kortlek)
-poäng = mina_kort.räkna_poäng()
-print(f"första kortet är [{mina_kort[0]}] andra kortet är [{mina_kort[1]}] tredje kortet är [{mina_kort[2]}]")
-print(f"dina poäng är {poäng}")
+if __name__ == "__main__":
+    main()
