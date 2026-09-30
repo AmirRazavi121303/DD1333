@@ -1,4 +1,6 @@
 import random
+import itertools
+import copy
 
 class Kort():
     def __init__(self, färg, symbol, fyllnadsgrad, n_symboler):
@@ -119,6 +121,55 @@ class Spelbord():
             return True
         else:
             return False
+
+class Patienslösare:
+    def __init__(self, start_bord, start_kortlek):
+        self.start_bord = start_bord
+        self.start_kortlek = start_kortlek
+    
+    def sök_bästa_sekvens(self, bord, kortlek):
+        giltiga_index = [i for i, kort in enumerate(bord.bordets_kort) if kort is not None]
+        
+        #skapar alla unika 3 kortskombinationer från indexen
+        alla_tripplar = list(itertools.combinations(giltiga_index, 3))
+        
+        #Basfall: om inga 3 kort finss kvar slutar spelet
+        if not alla_tripplar or len(giltiga_index) < 3:
+            return 0, []
+        
+        bästa_poäng = float(-(10e-10))
+        bästa_sekvens = []
+        
+        for kombination in alla_tripplar:
+            #vi ska skapa kopior av bordet och leken för att testa dragen
+            sim_bord = copy.deepcopy(bord)
+            sim_kortlek = copy.deepcopy(kortlek)
+            
+            #bordets_kort är en metod från Kort() som dyker upp här med. 
+            sim_bord.valda_index = list(kombination)
+            sim_bord.valda_kort = [sim_bord.bordets_kort[i] for i in kombination]
+            
+            drag_poäng = sim_bord.räkna_poäng()
+            
+            #vi bryr oss inte ens om ett drag är -1p, jätte viktigt stycke
+            if drag_poäng < 0 and len(alla_tripplar) > 1:
+                continue
+            
+            #fyll på det simulerade bordet med 3 simulerade kort
+            sim_bord.fyll_på(sim_kortlek)
+            
+            #rekursiv anrop, den utför funktionen igen för o se hur många poäng man kan få från en given position
+            framtida_poäng, framtida_sekvens = self.sök_bästa_sekvens(sim_bord, sim_kortlek)
+            
+            #allt härifrån ner händer först efter att alla möjliga blandningar har undersökts
+            totalt_för_denna_väg = drag_poäng + framtida_poäng
+            
+            if totalt_för_denna_väg > bästa_poäng:
+                bästa_poäng = totalt_för_denna_väg
+                
+                bästa_sekvens = [(sim_bord.valda_kort, drag_poäng)] + framtida_sekvens
+        return bästa_poäng, bästa_sekvens
+
 
 def main():
         kortlek = Kortlek()
