@@ -51,6 +51,8 @@ class Kortlek():
 class Spelbord():
     def __init__(self, kortlek):
         self.bordets_kort = []
+        self.valda_index = []
+        self.valda_kort = []
         self.fyll_på_bordet(kortlek)
     
     def fyll_på_bordet(self, kortlek):
@@ -60,18 +62,17 @@ class Spelbord():
     
     def välj_kort(self, kortlek):
         a = 6
-        self.valda_kort = []
-        self.valda_index = [i for i in range(1,a+1)]
+        self.valda_kort.clear()
+        self.valda_index.clear()
         
-        while len(self.valda_index) > 3:
+        while len(self.valda_index) < 3:
             try:
                 user_input = int(input(f"Välj ett kort (1-{a}) ({len(self.valda_kort) + 1} / {a//2})"))
-                if user_input in self.valda_index:
-                    self.valda_index.remove(user_input)
-                    self.valda_kort.append(self.bordets_kort[user_input-1])
-                
-                elif user_input > a:
+                if user_input > a:
                     print("Det finns inte så många kort i leken")
+                elif (user_input - 1) not in self.valda_index:
+                    self.valda_index.append(user_input-1)
+                    self.valda_kort.append(self.bordets_kort[user_input-1])
                 else:
                     print("Det kortet har du redan valt, försök igen")
             except Exception:
@@ -79,12 +80,12 @@ class Spelbord():
         return self.valda_kort
     
     def ersätt_valda_kort(self, kortlek: Kortlek):
-        for i in range(1,7): #tänk på detta om a skulle förändras
-            if i not in self.valda_index and kortlek.antal_kvar() > 0:
-                nytt_kort = kortlek.dra_kort()
-                if not nytt_kort.visas:
-                    nytt_kort.vänd()
-                self.bordets_kort[i-1] = nytt_kort
+        for i in range(0,6): #tänk på detta om a skulle förändras
+            if i in self.valda_index:
+                if kortlek.antal_kvar() > 0:
+                    self.bordets_kort[i] = kortlek.dra_kort()
+                else:
+                    self.bordets_kort[i] = None
 
     def räkna_poäng(self):
         poäng = 0
@@ -122,7 +123,7 @@ class Spelbord():
         else:
             return False
 
-class Patienslösare:
+class Patienslösare():
     def __init__(self, start_bord, start_kortlek):
         self.start_bord = start_bord
         self.start_kortlek = start_kortlek
@@ -137,7 +138,7 @@ class Patienslösare:
         if not alla_tripplar or len(giltiga_index) < 3:
             return 0, []
         
-        bästa_poäng = float(-(10e-10))
+        bästa_poäng = float('-inf')
         bästa_sekvens = []
         
         for kombination in alla_tripplar:
@@ -146,7 +147,7 @@ class Patienslösare:
             sim_kortlek = copy.deepcopy(kortlek)
             
             #bordets_kort är en metod från Kort() som dyker upp här med. 
-            sim_bord.valda_index = list(kombination)
+            sim_bord.valda_index = list(i +1 for i in list(kombination))
             sim_bord.valda_kort = [sim_bord.bordets_kort[i] for i in kombination]
             
             drag_poäng = sim_bord.räkna_poäng()
@@ -156,7 +157,7 @@ class Patienslösare:
                 continue
             
             #fyll på det simulerade bordet med 3 simulerade kort
-            sim_bord.fyll_på(sim_kortlek)
+            sim_bord.ersätt_valda_kort(sim_kortlek)
             
             #rekursiv anrop, den utför funktionen igen för o se hur många poäng man kan få från en given position
             framtida_poäng, framtida_sekvens = self.sök_bästa_sekvens(sim_bord, sim_kortlek)
@@ -170,7 +171,6 @@ class Patienslösare:
                 bästa_sekvens = [(sim_bord.valda_kort, drag_poäng)] + framtida_sekvens
         return bästa_poäng, bästa_sekvens
 
-
 def main():
         kortlek = Kortlek()
         kortlek.blanda()
@@ -178,27 +178,44 @@ def main():
         bord = Spelbord(kortlek)
         bord.fyll_på_bordet(kortlek)
         
-        total_poäng = 0
         
-        while kortlek.antal_kvar() > 0:
-            print(f"Antalet kort kvar i leken: {kortlek.antal_kvar()}")
-            
-            valda_kort = bord.välj_kort(kortlek)
-            
-            print("Dina kort är:")
-            for kort in valda_kort:
-                print(kort)
-            
-            omgång_poäng = bord.räkna_poäng()
-            total_poäng += omgång_poäng
-            
-            print(f"Utdelad poäng denna runda: {omgång_poäng}")
-            print(f"Total poäng: {total_poäng}")
-            
-            bord.ersätt_valda_kort(kortlek)
-            if not bord.fortsätt():
-                break
-        print(f"Spelet är slut, du fick {total_poäng} poäng!")
+        print("--- VÄLKOMMEN TILL SET (DD1333) ---")
+        val = int(input("Vill du [1] Spela själv eller [2] Låta datorn lösa patiensen? (1/2): "))
+        
+        if val == 2:
+            bot = Patienslösare(bord, kortlek)
+            print("\n🤖 Beräknar den optimala vägen...")
+            max_p, sekvens = bot.sök_bästa_sekvens(bord, kortlek)
+            print("\n" + "=" * 40)
+            print(f"🏆 MAXIMAL MÖJLIG POÄNG: {max_p} p")
+            print("=" * 40)
+            for i, (trippel, p) in enumerate(sekvens, start=1):
+                print(f"\nDrag {i} (+{p} p):")
+                for k in trippel:
+                    print(f"  • {k}")
+        else:
+            total_poäng = 0
+            while kortlek.antal_kvar() > 0:
+                print(f"Antalet kort kvar i leken: {kortlek.antal_kvar()}")
+                for kort in bord.bordets_kort:
+                    print(kort)
+                
+                valda_kort = bord.välj_kort(kortlek)
+                
+                print("Dina kort är:")
+                for kort in valda_kort:
+                    print(kort)
+                
+                omgång_poäng = bord.räkna_poäng()
+                total_poäng += omgång_poäng
+                
+                print(f"Utdelad poäng denna runda: {omgång_poäng}")
+                print(f"Total poäng: {total_poäng}")
+                
+                bord.ersätt_valda_kort(kortlek)
+                if not bord.fortsätt():
+                    break
+            print(f"Spelet är slut, du fick {total_poäng} poäng!")
 
 if __name__ == "__main__":
     main()
