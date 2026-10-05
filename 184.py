@@ -60,21 +60,29 @@ class Spelbord():
             kort = kortlek.dra_kort()
             self.bordets_kort.append(kort)
     
-    def välj_kort(self, kortlek):
+    def välj_kort(self, kortlek, bot_check):
         a = 6
         self.valda_kort.clear()
         self.valda_index.clear()
-        
         while len(self.valda_index) < 3:
+        
             try:
-                user_input = int(input(f"Välj ett kort (1-{a}) ({len(self.valda_kort) + 1} / {a//2})"))
-                if user_input > a:
-                    print("Det finns inte så många kort i leken")
-                elif (user_input - 1) not in self.valda_index:
-                    self.valda_index.append(user_input-1)
-                    self.valda_kort.append(self.bordets_kort[user_input-1])
+                if not bot_check:
+                    user_input = int(input(f"Välj ett kort (1-{a}) ({len(self.valda_kort) + 1} / {a//2})"))
+                    if user_input > a:
+                        print("Det finns inte så många kort i leken")
+                    elif (user_input - 1) not in self.valda_index:
+                        self.valda_index.append(user_input-1)
+                        self.valda_kort.append(self.bordets_kort[user_input-1])
+                    else:
+                        print("Det kortet har du redan valt, försök igen")
                 else:
-                    print("Det kortet har du redan valt, försök igen")
+                    bot_input = random.randint(1,6)
+                    if bot_input > a:
+                        continue
+                    elif (bot_input - 1) not in self.valda_index:
+                        self.valda_index.append(bot_input-1)
+                        self.valda_kort.append(self.bordets_kort[bot_input-1])
             except Exception:
                 print("Ogiltigt svar, försök igen")
         return self.valda_kort
@@ -117,11 +125,14 @@ class Spelbord():
         
         return poäng
     
-    def fortsätt(self):
-        if input("Vill du fortsätta spelet (y/n)?").lower() == "y":
-            return True
+    def fortsätt(self, bot_check):
+        if not bot_check:
+            if input("Vill du fortsätta spelet (y/n)?").lower() == "y":
+                return True
+            else:
+                return False
         else:
-            return False
+            return True
 
 class Patienslösare():
     def __init__(self, start_bord, start_kortlek):
@@ -171,51 +182,63 @@ class Patienslösare():
                 bästa_sekvens = [(sim_bord.valda_kort, drag_poäng)] + framtida_sekvens
         return bästa_poäng, bästa_sekvens
 
-def main():
-        kortlek = Kortlek()
-        kortlek.blanda()
-        
-        bord = Spelbord(kortlek)
-        bord.fyll_på_bordet(kortlek)
-        
-        
-        print("--- VÄLKOMMEN TILL SET (DD1333) ---")
-        val = int(input("Vill du [1] Spela själv eller [2] Låta datorn lösa patiensen? (1/2): "))
-        
-        if val == 2:
-            bot = Patienslösare(bord, kortlek)
-            print("\n🤖 Beräknar den optimala vägen...")
-            max_p, sekvens = bot.sök_bästa_sekvens(bord, kortlek)
-            print("\n" + "=" * 40)
-            print(f"🏆 MAXIMAL MÖJLIG POÄNG: {max_p} p")
-            print("=" * 40)
-            for i, (trippel, p) in enumerate(sekvens, start=1):
-                print(f"\nDrag {i} (+{p} p):")
-                for k in trippel:
-                    print(f"  • {k}")
+def MonteCarloSim():
+    omgångar = dict()
+    count = 0
+    M = 100
+    while count < M:
+        omgångar[count] = main(True)
+        count +=1
+        print(f'omgång {count} klar')
+    bästa_omgång = max(poäng for poäng in omgångar.values)
+    return bästa_omgång
+
+def main(bot_check):
+    kortlek = Kortlek()
+    kortlek.blanda()
+    
+    bord = Spelbord(kortlek)
+    bord.fyll_på_bordet(kortlek)
+    
+    total_poäng = 0
+    while kortlek.antal_kvar() > 0:
+        if not bot_check:
+            print(f"Antalet kort kvar i leken: {kortlek.antal_kvar()}")
+            for kort in bord.bordets_kort:
+                print(kort)
+            
+            valda_kort = bord.välj_kort(kortlek, bot_check)
+            
+            print("Dina kort är:")
+            for kort in valda_kort:
+                print(kort)
+            
+            omgång_poäng = bord.räkna_poäng()
+            total_poäng += omgång_poäng
+            
+            print(f"Utdelad poäng denna runda: {omgång_poäng}")
+            print(f"Total poäng: {total_poäng}")
+            
+            bord.ersätt_valda_kort(kortlek)
         else:
-            total_poäng = 0
-            while kortlek.antal_kvar() > 0:
-                print(f"Antalet kort kvar i leken: {kortlek.antal_kvar()}")
-                for kort in bord.bordets_kort:
-                    print(kort)
-                
-                valda_kort = bord.välj_kort(kortlek)
-                
-                print("Dina kort är:")
-                for kort in valda_kort:
-                    print(kort)
+            for kort in bord.bordets_kort:
+                valda_kort = bord.välj_kort(kortlek, bot_check)
                 
                 omgång_poäng = bord.räkna_poäng()
                 total_poäng += omgång_poäng
                 
-                print(f"Utdelad poäng denna runda: {omgång_poäng}")
-                print(f"Total poäng: {total_poäng}")
-                
                 bord.ersätt_valda_kort(kortlek)
-                if not bord.fortsätt():
-                    break
-            print(f"Spelet är slut, du fick {total_poäng} poäng!")
+        if not bord.fortsätt(bot_check):
+            break
+    print(f"Spelet är slut, du fick {total_poäng} poäng!")
+    if bot_check:
+        return total_poäng
 
 if __name__ == "__main__":
-    main()
+    print("--- VÄLKOMMEN TILL PATIENS MED 81 KORT ---")
+    val = int(input("Vill du [1] Spela själv eller [2] Låta datorn lösa patiensen? (1/2): "))
+    
+    if val == 1:
+        main(False)
+    else:
+        MonteCarloSim()
