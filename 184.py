@@ -53,6 +53,7 @@ class Spelbord():
         self.bordets_kort = []
         self.valda_index = []
         self.valda_kort = []
+        self.sparad_sekvens = []
         self.fyll_på_bordet(kortlek)
     
     def fyll_på_bordet(self, kortlek):
@@ -83,6 +84,7 @@ class Spelbord():
                         self.valda_kort.append(self.bordets_kort[bot_input-1])
             except Exception:
                 print("Ogiltigt svar, försök igen")
+        self.sparad_sekvens.append(self.valda_kort)
         return self.valda_kort
     
     def ersätt_valda_kort(self, kortlek: Kortlek):
@@ -92,7 +94,7 @@ class Spelbord():
                     self.bordets_kort[i] = kortlek.dra_kort()
                 else:
                     self.bordets_kort[i] = None
-
+    
     def räkna_poäng(self):
         poäng = 0
         k1, k2, k3 = self.valda_kort[0], self.valda_kort[1], self.valda_kort[2]
@@ -181,7 +183,6 @@ class Patienslösare():
         return bästa_poäng, bästa_sekvens
 
 def MonteCarloSim():
-    omgångar = dict()
     count = 0
     högsta_poäng = 0
     M = 10000
@@ -210,6 +211,7 @@ def main(bot_check):
                 print(f"kort {bord.bordets_kort.index(kort)+1}: {kort}")
             
             valda_kort = bord.välj_kort(kortlek, bot_check)
+            bord.sparad_sekvens.append(valda_kort)
             
             print("Dina kort är:")
             for kort in valda_kort:
@@ -240,7 +242,7 @@ if __name__ == "__main__":
     print("--- VÄLKOMMEN TILL PATIENS MED 81 KORT ---")
     while True:
         val = int(input("Vill du: \n[1] Spela själv,\n[2] Låta datorn lösa patiensen med monte carlo,\n[3] avsluta? "))
-
+        
         if val == 1:
             main(False)
         elif val == 2:
