@@ -185,16 +185,23 @@ class Patienslösare():
 def MonteCarloSim():
     count = 0
     högsta_poäng = 0
+    högsta_sekvens = list()
     M = 10000
     while count < M:
-        omgångens_poäng = main(True)
+        omgångens_poäng, omgångens_sekvens = main(True)
         if omgångens_poäng > högsta_poäng:
             högsta_poäng = omgångens_poäng
+            högsta_sekvens = omgångens_sekvens
         count +=1
         if count % (M/10) == 0:
             print(f'omgång {count} klar')
     #bästa_omgång = max(poäng for poäng in omgångar.values())
+    for runda in högsta_sekvens:
+        print(f"-----runda {högsta_sekvens.index(runda)+1} ------")
+        for kort in runda:
+            print(kort)
     print(f"det högsta poänget jag lyckades få var {högsta_poäng}")
+
 
 def main(bot_check):
     kortlek = Kortlek()
@@ -204,6 +211,8 @@ def main(bot_check):
     bord.fyll_på_bordet(kortlek)
     
     total_poäng = 0
+    sekvens = []
+    
     while kortlek.antal_kvar() > 0:
         if not bot_check:
             print(f"Antalet kort kvar i leken: {kortlek.antal_kvar()}")
@@ -211,7 +220,6 @@ def main(bot_check):
                 print(f"kort {bord.bordets_kort.index(kort)+1}: {kort}")
             
             valda_kort = bord.välj_kort(kortlek, bot_check)
-            bord.sparad_sekvens.append(valda_kort)
             
             print("Dina kort är:")
             for kort in valda_kort:
@@ -227,6 +235,8 @@ def main(bot_check):
         else:
             valda_kort = bord.välj_kort(kortlek, bot_check)
             
+            sekvens.append(valda_kort.copy())
+            
             omgång_poäng = bord.räkna_poäng()
             total_poäng += omgång_poäng
             
@@ -236,7 +246,7 @@ def main(bot_check):
     if not bot_check:
         print(f"Spelet är slut, du fick {total_poäng} poäng!")
     if bot_check:
-        return total_poäng
+        return total_poäng, sekvens
 
 if __name__ == "__main__":
     print("--- VÄLKOMMEN TILL PATIENS MED 81 KORT ---")
@@ -247,5 +257,6 @@ if __name__ == "__main__":
             main(False)
         elif val == 2:
             MonteCarloSim()
+            
         else:
             break
