@@ -1,7 +1,4 @@
 import random
-import itertools
-import copy
-
 class Kort():
     def __init__(self, färg, symbol, fyllnadsgrad, n_symboler):
         self.färg: str = färg
@@ -19,7 +16,6 @@ class Kort():
             return f"{self.färg}, {self.symbol}, {self.fyllnadsgrad}, {self.n_symboler}"
         else:
             return "Baksida"
-
 class Kortlek():
     def __init__(self):
         self.kort = []
@@ -47,7 +43,6 @@ class Kortlek():
 
     def antal_kvar(self):
         return len(self.kort)
-
 class Spelbord():
     def __init__(self, kortlek):
         self.bordets_kort = []
@@ -78,10 +73,10 @@ class Spelbord():
                     else:
                         print("Det kortet har du redan valt, försök igen")
                 else:
-                    bot_input = random.randint(1,6)
-                    if (bot_input - 1) not in self.valda_index:
-                        self.valda_index.append(bot_input-1)
-                        self.valda_kort.append(self.bordets_kort[bot_input-1])
+                    giltiga_index = [i for i, k in enumerate(self.bordets_kort) if k is not None]
+                    if len(giltiga_index) >= 3:
+                        self.valda_index = random.sample(giltiga_index, 3)
+                        self.valda_kort = [self.bordets_kort[i] for i in self.valda_index]
             except Exception:
                 print("Ogiltigt svar, försök igen")
         self.sparad_sekvens.append(self.valda_kort)
@@ -134,59 +129,11 @@ class Spelbord():
         else:
             return True
 
-class Patienslösare():
-    def __init__(self, start_bord, start_kortlek):
-        self.start_bord = start_bord
-        self.start_kortlek = start_kortlek
-    
-    def sök_bästa_sekvens(self, bord, kortlek):
-        giltiga_index = [i for i, kort in enumerate(bord.bordets_kort) if kort is not None]
-        
-        #skapar alla unika 3 kortskombinationer från indexen
-        alla_tripplar = list(itertools.combinations(giltiga_index, 3))
-        
-        #Basfall: om inga 3 kort finss kvar slutar spelet
-        if not alla_tripplar or len(giltiga_index) < 3:
-            return 0, []
-        
-        bästa_poäng = float('-inf')
-        bästa_sekvens = []
-        
-        for kombination in alla_tripplar:
-            #vi ska skapa kopior av bordet och leken för att testa dragen
-            sim_bord = copy.deepcopy(bord)
-            sim_kortlek = copy.deepcopy(kortlek)
-            
-            #bordets_kort är en metod från Kort() som dyker upp här med. 
-            sim_bord.valda_index = list(i +1 for i in list(kombination))
-            sim_bord.valda_kort = [sim_bord.bordets_kort[i] for i in kombination]
-            
-            drag_poäng = sim_bord.räkna_poäng()
-            
-            #vi bryr oss inte ens om ett drag är -1p, jätte viktigt stycke
-            if drag_poäng < 0 and len(alla_tripplar) > 1:
-                continue
-            
-            #fyll på det simulerade bordet med 3 simulerade kort
-            sim_bord.ersätt_valda_kort(sim_kortlek)
-            
-            #rekursiv anrop, den utför funktionen igen för o se hur många poäng man kan få från en given position
-            framtida_poäng, framtida_sekvens = self.sök_bästa_sekvens(sim_bord, sim_kortlek)
-            
-            #allt härifrån ner händer först efter att alla möjliga blandningar har undersökts
-            totalt_för_denna_väg = drag_poäng + framtida_poäng
-            
-            if totalt_för_denna_väg > bästa_poäng:
-                bästa_poäng = totalt_för_denna_väg
-                
-                bästa_sekvens = [(sim_bord.valda_kort, drag_poäng)] + framtida_sekvens
-        return bästa_poäng, bästa_sekvens
-
 def MonteCarloSim():
     count = 0
     högsta_poäng = 0
     högsta_sekvens = list()
-    M = 10000
+    M = 1000000
     while count < M:
         omgångens_poäng, omgångens_sekvens = main(True)
         if omgångens_poäng > högsta_poäng:
@@ -202,7 +149,6 @@ def MonteCarloSim():
             print(kort)
     print(f"det högsta poänget jag lyckades få var {högsta_poäng}")
 
-
 def main(bot_check):
     kortlek = Kortlek()
     kortlek.blanda()
@@ -213,7 +159,7 @@ def main(bot_check):
     total_poäng = 0
     sekvens = []
     
-    while kortlek.antal_kvar() > 0:
+    while kortlek.antal_kvar() > 0 or any(k is not None for k in bord.bordets_kort):
         if not bot_check:
             print(f"Antalet kort kvar i leken: {kortlek.antal_kvar()}")
             for kort in bord.bordets_kort:
@@ -251,7 +197,7 @@ def main(bot_check):
 if __name__ == "__main__":
     print("--- VÄLKOMMEN TILL PATIENS MED 81 KORT ---")
     while True:
-        val = int(input("Vill du: \n[1] Spela själv,\n[2] Låta datorn lösa patiensen med monte carlo,\n[3] avsluta? "))
+        val = int(input("Vill du: \n[1] Spela själv,\n[2] Låta datorn lösa patiensen med monte carlo,\n[3] avsluta\n"))
         
         if val == 1:
             main(False)
