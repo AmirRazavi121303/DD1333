@@ -236,24 +236,16 @@ if __name__ == "__main__":
 
 class GUI:
     def __init__(self):
-        
         self.kortlek = Kortlek()
         self.kortlek.blanda()
-
-        
         self.bord = Spelbord(self.kortlek)
-
-        
         self.valda = []
-
         self.total_poäng = 0
-
-        
         self.fönster = tk.Tk()
         self.fönster.title("Patiens")
         self.fönster.geometry("850x400")
 
-        # Text högst upp i fönstret
+        #text högst upp i fönstret
         self.info = tk.Label(
             self.fönster,
             text="Klicka på tre kort",
@@ -261,18 +253,18 @@ class GUI:
         )
         self.info.pack(pady=10)
 
-        # Visar poäng och antal kort kvar i leken
+        #visar poäng och antal kort kvar i leken
         self.poäng_text = tk.Label(
             self.fönster,
             text="Poäng: 0"
         )
         self.poäng_text.pack()
 
-        # En ruta som innehåller alla sex kortknappar
+        #en ruta som innehåller alla sex kortknappar
         self.ram = tk.Frame(self.fönster)
         self.ram.pack(pady=20)
 
-        # Skapar sex knappar, en för varje kortplats
+        #skapar sex knappar, en för varje kortplats
         self.knappar = []
 
         for i in range(6):
@@ -284,13 +276,13 @@ class GUI:
                 command=lambda index=i: self.klicka_kort(index)
             )
 
-            # Placerar knappen bredvid de andra knapparna
+            #placerar knappen bredvid de andra knapparna
             knapp.grid(row=0, column=i, padx=4)
 
-            # Sparar knappen så att vi kan ändra den senare
+            #sparar knappen så att vi kan ändra den senare
             self.knappar.append(knapp)
 
-        # Knapp som räknar poäng och byter ut valda kort
+        #knapp som räknar poäng och byter ut valda kort
         self.spela_knapp = tk.Button(
             self.fönster,
             text="Räkna poäng och byt kort",
@@ -298,40 +290,33 @@ class GUI:
         )
         self.spela_knapp.pack(pady=10)
 
-        # Visar korten första gången
+        #visar korten första gången
         self.uppdatera_kort()
 
-        # Startar GUI:t
+        #startar GUI:t
         self.fönster.mainloop()
 
     def klicka_kort(self, index):
-        # Hämtar kortet på den klickade platsen
+
         kort = self.bord.bordets_kort[index]
 
-        # Gör inget om platsen är tom
         if kort is None:
             return
 
-        # Om kortet redan är valt avmarkerar vi det
         if index in self.valda:
             self.valda.remove(index)
 
-        # Annars väljer vi kortet om färre än tre är valda
         elif len(self.valda) < 3:
             self.valda.append(index)
 
-        # Uppdaterar knapparnas färger och text
         self.uppdatera_kort()
 
     def uppdatera_kort(self):
-        # Går igenom alla sex kortplatser
         for i in range(6):
             kort = self.bord.bordets_kort[i]
             knapp = self.knappar[i]
 
-            # Om det finns ett kort på platsen
             if kort is not None:
-                # Visar kortets egenskaper
                 text = (
                     f"Färg: {kort.färg}\n"
                     f"Symbol: {kort.symbol}\n"
@@ -341,76 +326,58 @@ class GUI:
 
                 knapp.config(text=text, state="normal")
 
-                # Gult betyder att kortet är valt
+                # gult betyder att kortet är valt
                 if i in self.valda:
                     knapp.config(bg="yellow")
                 else:
                     knapp.config(bg="white")
 
             else:
-                # Visar en tom plats när inget kort finns kvar
                 knapp.config(
                     text="Tom plats",
                     bg="lightgray",
                     state="disabled"
                 )
-
-        # Visar poäng och antal kort kvar
         self.poäng_text.config(
             text=f"Poäng: {self.total_poäng} | "
                     f"Kort kvar i leken: {self.kortlek.antal_kvar()}"
         )
 
-        # Visar hur många kort som är valda
+        #visar hur många kort som är valda
         self.info.config(
             text=f"Du har valt {len(self.valda)} av 3 kort"
         )
 
     def spela_runda(self):
-        # Spelaren måste välja exakt tre kort
+        
         if len(self.valda) != 3:
             messagebox.showinfo(
                 "Välj kort",
                 "Du måste välja exakt tre kort!"
             )
             return
-
-        # Sparar de valda kortens index i det befintliga spelbordet
         self.bord.valda_index = self.valda.copy()
-
-        # Sparar själva korten i samma ordning
         self.bord.valda_kort = [
             self.bord.bordets_kort[i] for i in self.valda
         ]
 
-        # Använder din befintliga funktion för poängräkning
+        # använder befintliga funktionen för main
         poäng = self.bord.räkna_poäng()
-
-        # Lägger till rundans poäng
         self.total_poäng += poäng
-
-        # Använder din befintliga funktion för att byta kort
         self.bord.ersätt_valda_kort(self.kortlek)
-
-        # Nollställer valet inför nästa runda
         self.valda.clear()
-
-        # Uppdaterar korten och poängen på skärmen
         self.uppdatera_kort()
-
-        # Visar rundans resultat
+        
+        #visar rundans resultat
         messagebox.showinfo(
             "Resultat",
             f"Du fick {poäng} poäng denna runda!\n"
             f"Total poäng: {self.total_poäng}"
         )
-
-        # Kontrollerar om minst tre kort finns kvar på bordet
         antal_kort = sum(
             1 for kort in self.bord.bordets_kort
             if kort is not None
         )
-
         if antal_kort < 3:
             self.info.config(
                 text="Spelet är slut! Du fick "
