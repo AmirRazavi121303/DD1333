@@ -233,7 +233,6 @@ if __name__ == "__main__":
             
         else:
             break
-
 class GUI:
     def __init__(self):
         self.kortlek = Kortlek()
@@ -241,6 +240,7 @@ class GUI:
         self.bord = Spelbord(self.kortlek)
         self.valda = []
         self.total_poäng = 0
+        
         self.fönster = tk.Tk()
         self.fönster.title("Patiens")
         self.fönster.geometry("850x400")
