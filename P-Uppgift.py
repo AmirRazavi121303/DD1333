@@ -1,13 +1,13 @@
 import pyflp
 import os
 import hashlib
-
 class Project():
     def __init__(self, filepath, filename, tempo, track_count):
         #1 identification
         self.filepath: str = filepath
         self.filename: str = filename
-        self.mod_time: float = os.path.getmtime(filepath)
+        self.m_time: float = os.path.getmtime(filepath)
+        self.c_time: float = os.path.getctime(filepath)
         
         #2 Minhash
         self.hash: set[str] = set()
@@ -83,17 +83,51 @@ def find_name_words(flp):
             plugins.add(channel.plugin.name)
     return name_words, plugins
 
-def find_similar(flp, A, B):
+def find_similar(A, B):
+    def checker(a, b):
+        set_same = set()
+        poäng = 0
+        poäng +=1
+        if A.filename.replace(' ','') in B.name_words: #om rubriken på ena är i andras channel rack
+            set_same.add(A.filename)
+            poäng +=1
+        if len(A.name_words) > len(B.name_words): #om den ena har fler filer än den andra
+            poäng += 1
+        return set_same, poäng
+    
     for word in A.name_words:
-        if A in B:
-            pass
+        if word in B.name_words:
+            set_same.add(word)
+    #hitta om A är äldre än B:
+    if A.c_time < B.c_time: 
+        set_same, poäng = checker(A, B)
+    elif B.c_time < A.c_time:
+        set_same, poäng = checker(B, A)
+    
+    p = poäng//3 * 100
+    return set_same, p
+
+def identify_similar(folder_path):
+    for project, i in folder_path:
+        pass
+
+def find_ends(A, B):
+    ändelser = [f"v{i}" for i in range(1,10)] + ['beat', 'final', 'beat', 'edit', 'copy']
+    pass
 
 def main(folder_path):
     mapp = parsing(folder_path)
-    print(f"-----{mapp[0].filename}----- \n {len(mapp[0].hash)} hashar \n, ord: {mapp[0].name_words},\n plugins: {mapp[0].plugins}")
-    print(f"-----{mapp[1].filename}----- \n {len(mapp[1].hash)} hashar \n, ord: {mapp[1].name_words} ,\n plugins: {mapp[1].plugins}")
-    print('-----------')
-    print(f"de hashen som är likadana är {mapp[0].hash.intersection(mapp[1].hash)}")
+    project1 = mapp[0]
+    project2 = mapp[1]
+    #orden, poäng = find_similar(project1, project2)
+    for i in enumerate(mapp):
+        orden, poäng = find_similar(mapp[i], mapp[i+1]) #dehär går inte, den måste kunna "cluster" project som är lika på nåt sätt
+    print('\n-----TEST FOLDER-----\n')
+    print(f"-----{project1.filename}----- \n {len(project1.hash)} hashar \n, ord: {project1.name_words},\n plugins: {project1.plugins}\n")
+    print(f"-----{project2.filename}----- \n {len(project2.hash)} hashar \n, ord: {project2.name_words} ,\n plugins: {project2.plugins}\n")
+    print('\n-----------')
+    print(f"de hashen som är likadana är {project1.hash.intersection(project2.hash)}")
+    print(f"de orden som är likadana {orden}, och sannolikheten att {project1.filename} är förälder till {project2.filename} är {poäng}‰")
 
 if __name__ == "__main__":
     main('/Users/amir/Downloads/CodeAmir/DD1333/test')
