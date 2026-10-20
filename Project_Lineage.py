@@ -84,7 +84,7 @@ def find_name_words(flp):
     return name_words, plugins
 
 def find_similar(A, B):
-    def checker(a, b):
+    def checker(A, B):
         set_same = set()
         poäng = 0
         poäng +=1
@@ -107,7 +107,7 @@ def find_similar(A, B):
     p = poäng//3 * 100
     return set_same, p
 
-def identify_similar(folder_path):
+def identify_similar(folder_path): #helst vill jag att den ska cluster likadana projekt ihop
     for project, i in folder_path:
         pass
 
@@ -119,9 +119,9 @@ def main(folder_path):
     mapp = parsing(folder_path)
     project1 = mapp[0]
     project2 = mapp[1]
-    #orden, poäng = find_similar(project1, project2)
-    for i in enumerate(mapp):
-        orden, poäng = find_similar(mapp[i], mapp[i+1]) #dehär går inte, den måste kunna "cluster" project som är lika på nåt sätt
+    orden, poäng = find_similar(project1, project2)
+    """for i in enumerate(mapp):
+        orden, poäng = find_similar(mapp[i], mapp[i+1])""" #dehär går inte, den måste kunna "cluster" project som är lika på nåt sätt
     print('\n-----TEST FOLDER-----\n')
     print(f"-----{project1.filename}----- \n {len(project1.hash)} hashar \n, ord: {project1.name_words},\n plugins: {project1.plugins}\n")
     print(f"-----{project2.filename}----- \n {len(project2.hash)} hashar \n, ord: {project2.name_words} ,\n plugins: {project2.plugins}\n")
