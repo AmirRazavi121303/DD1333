@@ -37,7 +37,7 @@ def parsing(folder_path):
                 name_words, plugins = find_name_words(flp)
                 tempo = getattr(flp, "tempo", 100.0)
                 
-                project = Project(filepath, name, flp.channels, flp.patterns, flp.mixer, flp.arrangements) #avvakta med len(flp.channels) för nu
+                project = Project(filepath, name, flp.channels, flp.patterns, flp.mixer, flp.arrangements, tempo) #avvakta med len(flp.channels) för nu
                 
                 project.hash = add_hashes
                 
@@ -98,41 +98,49 @@ def find_key(flp):
 #7. har de samma tempo
 
 def checker(A, B):
+    tot_points = 0
+    set_same = set()
+    n_criteria = 7
+    
+    if A.c_time < B.c_time:
+        tot_points = float(get_points(A, B, set_same)/n_criteria)
+    
+    else:
+        tot_points = float(get_points(B, A, set_same)/n_criteria)
+    
+    return tot_points, set_same
+
+def get_points(A,B,s):
     A_name = A.filename.replace(' ','')
     B_name = B.filename.replace(' ','')
-    
-    A_ord = A.name_words
-    B_ord = B.name_words
-    
-    A_ctime = A.c_time
-    B_ctime = B.c_time
-    
-    A_mtime = A.m_time
-    B_mtime = B.m_time
-    
     A_nchannels = len(A.channels)
     B_nchannels = len(B.channels)
     
-    A_hashes = A.hash
-    B_hashes = B.hash
+    s.add("time created")
+    points = 1
     
-    A_tempo = A.tempo
-    B_tempo = B.tempo
+    if B_name in A.name_words:
+        points +=1
+        s.add("name in project")
     
-    set_same = set()
-    poäng = 0
+    if len(A.name_words.intersection(B.name_words)) > 0:
+        points +=1
+        s.add("similar words")
     
-    for word in A.name_words:
-        if word in B.name_words:
-            set_same.add(word)
+    if A_nchannels <= B_nchannels:
+        points +=1
+        s.add("more channels")
     
-    if A.c_time < B.c_time: 
-        poäng = 1
-    elif B.c_time < A.c_time:
-        poäng = checker(B, A, set_same)
+    if len(A.hash.intersection(B.hash)) > 0:
+        points +=1
+        s.add("same hashes")
     
-    p = poäng/3 * 100
-    return set_same, p
+    #key kommer sen
+    
+    if A.tempo == B.tempo:
+        points +=1
+    
+    return points
 
 def main(folder_path):
     s = set()
@@ -145,6 +153,7 @@ def main(folder_path):
     print(f"-----{project2.filename}----- \n {len(project2.hash)} hashar \n, ord: {project2.name_words} ,\n plugins: {project2.plugins}\n")
     print('\n-----------')
     print(f"de hashen som är likadana är {project1.hash.intersection(project2.hash)}")
+    print(checker(project1, project2))
 
 if __name__ == "__main__":
     main('/Users/amir/Downloads/CodeAmir/DD1333/test')
